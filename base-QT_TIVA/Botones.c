@@ -43,7 +43,7 @@
 
 
 #define LED1TASKPRIO 1
-#define LED1TASKSTACKSIZE 128
+#define LED1TASKSTACKSIZE 128 //a
 
 //Globales
 
