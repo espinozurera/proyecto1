@@ -43,7 +43,7 @@
 
 
 #define LED1TASKPRIO 1
-#define LED1TASKSTACKSIZE 128 //a
+#define LED1TASKSTACKSIZE 128
 
 //Globales
 
@@ -219,14 +219,22 @@ static portTASK_FUNCTION( CommandProcessingTask, pvParameters ){
 				case COMANDO_LEDS:
 				{
 					PARAM_COMANDO_LEDS parametro;
+					uint8_t ui8LED=0;
 					uint32_t g_pui32Colors[3] = { 0x0000, 0x0000, 0x0000 };
 					if (check_command_param_size(i16Numdatos,sizeof(parametro)))
 					{
 						extract_packet_command_param(pui8Frame,sizeof(parametro),&parametro);
 						g_pui32Colors[0]= parametro.leds.fRed ? 0x8000 : 0x0000;
+						if(g_pui32Colors[0]!=0)
+							ui8LED=ui8LED+2;
 						g_pui32Colors[1]=parametro.leds.fGreen ? 0x8000 : 0x0000;
+						if(g_pui32Colors[1]!=0)
+							ui8LED=ui8LED+4;
 						g_pui32Colors[2]= parametro.leds.fBlue ? 0x8000 : 0x0000;
-						RGBColorSet(g_pui32Colors);
+						if(g_pui32Colors[2]!=0)
+							ui8LED=ui8LED+8;
+						GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, ui8LED);
+
 					}
 				}
 				break;
@@ -242,6 +250,48 @@ static portTASK_FUNCTION( CommandProcessingTask, pvParameters ){
 					}
 				}
 				break;
+				case COMANDO_COLOR:
+						{
+							PARAM_COMANDO_COLOR parametro;
+
+							uint32_t g_pui32Colors[3] = { 0x0000, 0x0000, 0x0000 }; /*lo comento ya
+							 * que creo que para que los demas led no se vean afectados no es necesario
+							 * resetearlos todos cada vez que se ajuste uno
+							 */
+							if (check_command_param_size(i16Numdatos,sizeof(parametro)))
+							{
+								extract_packet_command_param(pui8Frame,sizeof(parametro),&parametro);
+
+								g_pui32Colors[0]=parametro.leds.fRed ? 0x8000 : 0x0000;
+								g_pui32Colors[1]=parametro.leds.fGreen ? 0x8000 : 0x0000;
+								g_pui32Colors[2]= parametro.leds.fBlue ? 0x8000 : 0x0000;
+
+								RGBColorSet(g_pui32Colors);
+							}
+						}
+						break;
+
+				case COMANDO_CAMBIO_MODO:
+						{
+							PARAM_COMANDO_MODO parametro;
+
+
+							if (check_command_param_size(i16Numdatos,sizeof(parametro)))
+							{
+								extract_packet_command_param(pui8Frame,sizeof(parametro),&parametro);
+
+								if(parametro.modo==1){
+
+									// Configura pines PF1, PF2, y PF3 como salidas (control de LEDs)
+									GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
+								}
+								if(parametro.modo==0){
+									RGBInit(1);
+								}
+							}
+						}
+						break;
+
 				default:
 				{
 					PARAM_COMANDO_NO_IMPLEMENTADO parametro;
