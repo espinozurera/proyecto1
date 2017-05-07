@@ -229,10 +229,10 @@ static portTASK_FUNCTION( CommandProcessingTask, pvParameters ){
 							ui8LED=ui8LED+2;
 						g_pui32Colors[1]=parametro.leds.fGreen ? 0x8000 : 0x0000;
 						if(g_pui32Colors[1]!=0)
-							ui8LED=ui8LED+4;
+							ui8LED=ui8LED+8;
 						g_pui32Colors[2]= parametro.leds.fBlue ? 0x8000 : 0x0000;
 						if(g_pui32Colors[2]!=0)
-							ui8LED=ui8LED+8;
+							ui8LED=ui8LED+4;
 						GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, ui8LED);
 
 					}
