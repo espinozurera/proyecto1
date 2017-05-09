@@ -124,34 +124,7 @@ SemaphoreHandle_t mutexUSB;
 
 xQueueHandle cola_freertos;
 
-// Codigo para enviar los botones pulsados
-static portTASK_FUNCTION( ButtonsTask, pvParameters ){
-	uint8_t pui8Frame[MAX_FRAME_SIZE];	//Ojo, esto hace que esta tarea necesite bastante pila
-	PARAM_COMANDO_BUTTONS parametro;
-	int16_t i16Numdatos;
-	int32_t i32Status;
-	//
-	// Loop forever.
-	//
-	while(1)
-	{
-		if (xQueueReceive(cola_freertos,&i32Status,portMAX_DELAY)==pdTRUE)
-		{
-			parametro.ui8Buttons=0;
-			if((i32Status & LEFT_BUTTON) == 0)
-				parametro.button.fLeft = 1;
-			if((i32Status & RIGHT_BUTTON) == 0)
-				parametro.button.fRight = 1;
-			i16Numdatos=create_frame(pui8Frame,COMANDO_BUTTONS,&parametro,sizeof(parametro),MAX_FRAME_SIZE);
-			if (i16Numdatos>=0)
-			{
-				xSemaphoreTake(mutexUSB,portMAX_DELAY);
-				send_frame(pui8Frame,i16Numdatos);
-				xSemaphoreGive(mutexUSB);
-			}
-		}
-	}
-}
+
 
 // El codigo de esta tarea esta definida en el fichero command.c, es la que se encarga de procesar los comandos del interprete a traves
 // del terminal serie (puTTY)
@@ -292,6 +265,39 @@ static portTASK_FUNCTION( CommandProcessingTask, pvParameters ){
 						}
 						break;
 
+		    	case COMANDO_SONDEO:
+				{
+					PARAM_COMANDO_SONDEO parametro;
+
+
+					if (check_command_param_size(i16Numdatos,sizeof(parametro)))
+					{
+						extract_packet_command_param(pui8Frame,sizeof(parametro),&parametro);
+
+						if(parametro.sondeo==1){
+							uint8_t pui8Frame[MAX_FRAME_SIZE];	//Ojo, esto hace que esta tarea necesite bastante pila
+							PARAM_COMANDO_BUTTONS parametro1;
+							int16_t i16Numdatos;
+							int32_t i32Status = ROM_GPIOPinRead(GPIO_PORTF_BASE,ALL_BUTTONS);
+							parametro1.ui8Buttons=0;
+							if((i32Status & LEFT_BUTTON) == 0)
+								parametro1.button.fLeft = 1;
+							if((i32Status & RIGHT_BUTTON) == 0)
+								parametro1.button.fRight = 1;
+							i16Numdatos=create_frame(pui8Frame,COMANDO_BUTTONS,&parametro1,sizeof(parametro1),MAX_FRAME_SIZE);
+								if (i16Numdatos>=0)
+									{
+									xSemaphoreTake(mutexUSB,portMAX_DELAY);
+									send_frame(pui8Frame,i16Numdatos);
+									xSemaphoreGive(mutexUSB);
+								}
+						}
+
+					  }
+					}
+				break;
+
+
 				default:
 				{
 					PARAM_COMANDO_NO_IMPLEMENTADO parametro;
@@ -411,10 +417,6 @@ int main(void)
 	//
 	// Crea la tarea que envia el estado de los botones
 	//
-	if(xTaskCreate(ButtonsTask, "Botones",512, NULL, tskIDLE_PRIORITY + 2, NULL) != pdTRUE)
-	{
-		while(1);
-	}
 
 	//
 	// Arranca el  scheduler.  Pasamos a ejecutar las tareas que se hayan activado.
